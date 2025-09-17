@@ -82,7 +82,7 @@
           <property key="showTitleBar" type="bool">false</property>
         </ignition-gui>
       </plugin>
-      
+
       <!-- World control -->
       <plugin filename="WorldControl" name="World control">
         <ignition-gui>
@@ -123,6 +123,17 @@
         <ignition-gui>
         </ignition-gui>
         <topic>semantic/labels_map</topic>
+      </plugin>
+      <!-- adding the viewing for the realsense camera!-->
+
+      <plugin filename="ImageDisplay" name="Realsense RGB">
+        <ignition-gui/>
+        <topic>/realsense/image</topic>
+      </plugin>
+
+      <plugin filename="ImageDisplay" name="Realsense Depth">
+        <ignition-gui/>
+        <topic>/realsense/depth_image</topic>
       </plugin>
     </gui>
 
@@ -248,6 +259,15 @@
       </plugin>
     </include>
 
+    <!-- Here a realsense depth camera to my world and lets capture rgb and depth images -->
+    <include>
+      <name>camera</name>
+      <pose>7 0 0.5 0 0 -1.57</pose>
+      <uri>
+        https://fuel.gazebosim.org/1.0/OpenRobotics/models/Intel RealSense D435
+      </uri>
+    </include>
+
     <!--adding the segmentation camera to a box-->
     <model name="instance_camera">
       <pose>6 0 2.0 0 0.0 3.14</pose>
@@ -348,6 +368,38 @@
           <update_rate>30</update_rate>
           <visualize>true</visualize>
         </sensor>
+
+        <sensor name="realsense_rgbd" type="rgbd_camera">
+          <topic>realsense</topic>
+          <update_rate>30</update_rate>
+          <always_on>true</always_on>
+
+          <camera>
+            <horizontal_fov>1.57</horizontal_fov>
+            <image>
+              <width>640</width>
+              <height>480</height>
+              <format>R8G8B8</format>
+            </image>
+            <clip>
+              <near>0.1</near>
+              <far>100</far>
+            </clip>
+
+            <!-- Save RGB frames -->
+            <save enabled="true">
+              <path>data/realsense/rgb</path>
+            </save>
+          </camera>
+
+          <!-- Save depth frames -->
+          <depth_camera>
+            <save enabled="true">
+              <path>data/realsense/depth</path>
+            </save>
+          </depth_camera>
+        </sensor>
+
       </link>
     </model>
     
