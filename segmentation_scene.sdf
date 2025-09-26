@@ -270,7 +270,7 @@
 
     <!--adding the segmentation camera to a box-->
     <model name="instance_camera">
-      <pose>6 0 2.0 0 0.0 3.14</pose>
+      <pose>8 0 4.0 0 0.0 3.14</pose>
       <link name="link">
         <pose>0 0 0 0 0 0</pose>
         <inertial>
@@ -309,9 +309,11 @@
               <near>0.1</near>
               <far>100</far>
             </clip>
+            <!--
             <save enabled="true">
-              <path>segmentation_data/instance_camera</path>
+              <path>data/realsense/rgb</path>
             </save>
+            -->
           </camera>
           <always_on>1</always_on>
           <update_rate>30</update_rate>
@@ -360,9 +362,11 @@
               <near>0.1</near>
               <far>100</far>
             </clip>
+            <!--
             <save enabled="true">
               <path>segmentation_data/semantic_camera</path>
             </save>
+            -->
           </camera>
           <always_on>1</always_on>
           <update_rate>30</update_rate>
@@ -386,18 +390,23 @@
               <far>100</far>
             </clip>
 
+            <!-- COmmented out for the demo: -->
             <!-- Save RGB frames -->
+            <!--
             <save enabled="true">
               <path>data/realsense/rgb</path>
             </save>
+                        -->
           </camera>
 
           <!-- Save depth frames -->
+          <!--
           <depth_camera>
             <save enabled="true">
               <path>data/realsense/depth</path>
             </save>
           </depth_camera>
+          -->
         </sensor>
 
       </link>
