@@ -6,6 +6,8 @@ from nav_msgs.msg import Odometry
 import math
 import sys
 import threading
+#including float 64 for error publishing
+from std_msgs.msg import Float64
 
 # "GoForward" class inherits from the base class "Node"
 
@@ -30,6 +32,8 @@ class GoToGoal(Node):
         # adding a bool value so we send only one command on goal reached
         self.goal_reached = False
 
+        # creating the error publisher so we can plot the error with rqt_plot
+        self.error_publisher_ = self.create_publisher(Float64, '/distance_error', 10)
         timer_period = 0.1 # seconds
         # Initialize a timer that executes callback function every 0.5 seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
@@ -62,7 +66,11 @@ class GoToGoal(Node):
         distance = math.sqrt(deltax**2 + deltay**2)
         # final orientation.
         angle_to_goal = math.atan2(deltay, deltax)
-
+        # publish the distance error for plotting by creating an instance of Float64
+        error_msg = Float64()
+        error_msg.data = distance
+        self.error_publisher_.publish(error_msg)
+        
         # Heading error for final orientation
         theta_error = self.theta_goal - self.rot
         # angle normalisation
