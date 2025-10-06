@@ -5,6 +5,7 @@ from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 import math
 import sys
+import threading
 
 # "GoForward" class inherits from the base class "Node"
 
@@ -13,7 +14,7 @@ class GoToGoal(Node):
 
     def __init__(self, x_goal, y_goal, theta_goal):
         # Initialize the node
-        super().__init__('to_to_goal')
+        super().__init__('go_to_goal')
         # Initialize the publisher
         self.publisher_ = self.create_publisher(Twist, '/cmd_vel', 10)
         # lets make the subscriber for the /odom topic
@@ -26,6 +27,8 @@ class GoToGoal(Node):
         self.x_goal = x_goal
         self.y_goal = y_goal
         self.theta_goal = theta_goal
+        # adding a bool value so we send only one command on goal reached
+        self.goal_reached = False
 
         timer_period = 0.1 # seconds
         # Initialize a timer that executes callback function every 0.5 seconds
@@ -65,8 +68,8 @@ class GoToGoal(Node):
         # angle normalisation
         theta_error = math.atan2(math.sin(theta_error), math.cos(theta_error))
         # position tolerances:
-        position_offset = 0.05
-        angle_offset = 0.05
+        position_offset = 0.1
+        angle_offset = 0.1
 
         # control for cmd_vel commands
         if distance < position_offset:
@@ -75,14 +78,18 @@ class GoToGoal(Node):
                 # goal reached
                 move_cmd.linear.x = 0.0
                 move_cmd.angular.z = 0.0
-                # add data to the logger
-                self.get_logger().info(f"Goal reached: ({self.x_goal}, {self.y_goal}, {self.theta_goal})")
+                # add data to the logger that we reached the goal
+                if (self.goal_reached == False):
+                    self.get_logger().info(f"Goal reached: ({self.x_goal}, {self.y_goal}, {self.theta_goal})")
+                    self.goal_reached = True
             else: 
                 # position correct -> change orientation
                 move_cmd.linear.x = 0.0
                 move_cmd.angular.z = 1.5 * theta_error
         else:
             # control towards goal because we are not close enough
+            # logging the distance to goal.
+            self.get_logger().info(f"Distance to target: ({distance:.3f} m.)")
             move_cmd.linear.x = 0.25
             move_cmd.angular.z = 1.5 * (angle_to_goal - self.rot)
 
@@ -99,28 +106,47 @@ class GoToGoal(Node):
     	
 def main(args=None):
     rclpy.init(args=args)
-    
-    # with command-line we give the goal of position and orientation
-    # first lets check that enough inputs are given:
-    if len(sys.argv) < 4:
-        print("python3 ros2goxy.py x_goal y_goal theta_goal[rad](!=0)")
-        return
-    # Take the input and convert to float
-    x_goal = float(sys.argv[1])
-    y_goal = float(sys.argv[2])
-    theta_goal = float(sys.argv[3])
+
+    # Creaation of the node with the initial goal of (0.0,0.0,0.0)
+    cmd_publisher = GoToGoal(0.0, 0.0, 0.0)
+
+    # Run ROS spin in a separate thread so we can use input() in the main thread
+    thread = threading.Thread(target=rclpy.spin, args=(cmd_publisher,))
+    thread.start()
 
     try:
-        # start the gotogoal
-        cmd_publisher = GoToGoal(x_goal, y_goal, theta_goal)
-        # continue until interrupted
-        rclpy.spin(cmd_publisher)
+        while True:
+            # ask for new coordinates
+            print("\nEnter new goal coordinates (or 'q' to quit):")
+            x_goal = input("x_goal: ")
+            if x_goal.lower() == 'q':
+                break
+            y_goal = input("y_goal: ")
+            if y_goal.lower() == 'q':
+                break
+            theta_goal = input("theta_goal (in radians): ")
+            if theta_goal.lower() == 'q':
+                break
+
+            try:
+                cmd_publisher.x_goal = float(x_goal)
+                cmd_publisher.y_goal = float(y_goal)
+                cmd_publisher.theta_goal = float(theta_goal)
+                cmd_publisher.get_logger().info(
+                    f"New goal set: ({x_goal}, {y_goal}, {theta_goal})"
+                )
+                # set the goal reached to false so we can print the result we reach again.
+                cmd_publisher.goal_reached = False
+            except ValueError:
+                print("Invalid input, please enter numeric values.")
+
     except KeyboardInterrupt:
-        # execute shutdown function
+        pass
+    finally:
         cmd_publisher.stop_turtlebot()
-        # clear the node
         cmd_publisher.destroy_node()
         rclpy.shutdown()
+        thread.join()
     	
 if __name__ == '__main__':
     main()
